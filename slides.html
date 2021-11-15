@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>A Beginner's Guide to Haskell</title>
+    <meta charset="utf-8">
+    <style>
+      /* @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic); */
+      @import url(css/metropolis.css);
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle, title-slide
+count: false
+
+# .more-line-height[A Beginner's Guide to .grey[Haskell] <br /> and its .grey[Ecosystem]]
+## .font90[Alejandro Serrano @ Haskell eXchange 2021]
+
+.less-line-height[
+.grey[🐦 @trupill - 👨‍💻 47 Degrees (Academy)]
+]
+
+---
+
+# Goal
+
+Learning a new programming environment involves many things:
+
+- The language itself
+- The build tools
+- Where to find dependencies
+- Good idioms and practices
+- ...
+
+---
+
+# Goal
+
+Learning a new programming environment involves many things:
+
+- .strike[.grey[The language itself]] too much focus on this
+- The build tools
+- Where to find dependencies
+- Good idioms and practices
+- ...
+
+> A bird's eye view of design and ecosystem
+
+---
+
+# Contents
+
+🧐 What makes Haskell .strike[hard] special
+
+⏫ Getting started
+
+🧱 Projects in Haskell
+
+⚗️ Extensions and the Type Level
+
+🗣️ Community
+
+---
+
+class: center, middle, title-slide
+
+# .more-line-height[🧐 What makes Haskell <br /> &nbsp;&nbsp;&nbsp;&nbsp; .strike[hard] special]
+
+---
+
+# 🐉 A different beast
+
+Haskell (and FP) have brought many ideas to the table: .font60[(list not complete)]
+
+.font90[
+- Higher-order functions
+    - Higher-rank and impredicativity
+- Algebraic data types and pattern matching
+- Purity and laziness
+- Type-directed contexts with type classes
+    - Functors and monads everywhere
+- Working with and manipulating types
+]
+
+---
+
+# Haskell's Manifesto (about design)
+
+### .grey[Define **data** in a simple way]
+
+.little-margin-top[
+- Enforce _invariants_ at compile-time
+- Powerful _pattern matching_
+]
+
+### .grey[Use types to **guide** your program]
+
+.little-margin-top[
+- Be explicit about your constraints
+- Compiler-based DI
+]
+
+### .grey[Think about **side effects**]
+
+.little-margin-top[
+- No tag = no side effects (pure)
+]
+
+---
+
+# Haskell `data` is mainstream
+
+Some ideas are nowadays in <br /> Scala / Kotlin / Java / C# / Swift:
+
+- Higher-order functions
+- Algebraic data types
+    - Records / data classes
+    - Sealed hierarchies
+
+> Learn concepts in a familiar setting
+
+---
+
+# Purity
+
+Anything outside computation (**side effects**) is marked in the type:
+
+```haskell
+(++) :: String -> String -> String
+readContents :: String -> IO String
+```
+
+This **restricts** composition:
+
+- Forces a _pure core / effectful edges_ design
+- Drawing the line is difficult at first
+
+---
+
+# Laziness
+
+This function is short-circuiting:
+
+```haskell
+and :: Bool -> Bool -> Bool
+and False _ = False
+and _     x = x
+```
+
+In Haskell computations are executed:
+
+- Only when needed
+- As much as they are needed
+
+---
+
+# Laziness
+
+In Haskell computations are executed:
+
+- Only when needed
+- As much as they are needed
+
+## This is .grey[**hard**]!
+
+.margin-top[
+- Debugging follows weird paths
+- It works in the small, it leaks in the large
+]
+
+---
+
+class: center, middle, title-slide
+
+# ⏫ Getting started
+
+---
+
+# Our tool manager: `ghcup`
+
+> Easiest way to get a working environment
+
+Similar to SDKMAN, Coursier, `rustup`...
+
+```
+> ghcup install ghc recommended
+> ghcup install cabal recommended
+> ghcup install stack recommended
+> ghcup install hls recommended
+```
+
+ℹ️ Don't worry about versions for now
+
+---
+
+# Our editor integration: HLS
+
+Based on Language Server Protocol
+
+- Support from VS Code to Emacs
+- In VS Code, just install the _Haskell_ plug-in
+
+⚠️ Sometimes HLS support lags behind
+
+- You can check support with `ghcup list`
+
+.code60[
+```
+✗  ghc   8.10.6   base-4.14.3.0             hls-powered
+✔✔ ghc   8.10.7   recommended,base-4.14.3.0 hls-powered
+✓  ghc   9.0.1    base-4.15.0.0             hls-powered
+✗  ghc   9.2.1    latest,base-4.16.0.0
+```
+]
+
+---
+
+# Start a new project
+
+Not one, but two choices: .font60[(why, in just a second)]
+
+```
+> cd cool_project && cabal new
+> stack new cool_project
+```
+
+---
+
+# Start a new project
+
+Not one, but two choices: .font60[(why, in just a second)]
+
+```
+> cd cool_project && cabal new
+> stack new cool_project
+```
+
+Another good tool is .grey[🔮 Summoner]
+
+- Good set of default warnings
+- Additons like GH Actions integration
+
+---
+
+class: center, middle, title-slide
+
+# 🧱 Projects in Haskell
+
+---
+
+# Cabal vs. `cabal` vs. `.cabal`
+
+> Haskell's build tool story is **messy**
+
+- **Packages** are the unit of distribution
+    - Package = set of modules
+    - Module = source file = thing you import
+- Each package comes with a **build file**
+    - Dependencies, exposed modules, flags
+    - In the `<package-name>.cabal` file
+    - Often called _the Cabal file_
+
+---
+
+# Simple Cabal file
+
+.less-line-height[.font90[
+Not JSON, not YAML, something in between
+
+Each **stanza** defines libraries or executables
+]]
+
+.code70[
+```
+name:    haskell-exchange
+version: 0.1.0.0
+author:  Alejandro Serrano
+
+executable talk
+  main-is:          Main.hs
+  build-depends:    base ^>= 4.12, aeson ^>= 2
+  hs-source-dirs:   app
+
+test-suite talk-tests
+  ...
+```
+]
+
+---
+
+# Build tools: Cabal and Stack
+
+You can **build** such package in two ways:
+
+1. Cabal: `cabal build`
+2. Stack: `stack build`
+    - May require `stack init`
+
+---
+
+# Build tools: Cabal and Stack
+
+You can **build** such package in two ways:
+
+1. Cabal: `cabal build`
+2. Stack: `stack build`
+
+The choice is nuanced, but in general terms:
+.little-margin-top[.font90[
+- Stack focuses on reproducibility by default
+- Cabal supports reproducible tools via `freeze`
+- Stack tracks your toolchain (installs GHC)
+- Cabal doesn't, but we have `ghcup` now
+]]
+
+---
+
+# Dependencies: Stackage and Hackage
+
+Stacks requires an additional `stack.yaml` file
+
+.code80[
+```yaml
+resolver: lts-18.14  # package set
+packages:
+  - .                # your project
+```
+]
+
+A **resolver** defines a set of fixed packages and their versions known to .grey[build together]
+
+- Haskell packages are built from source
+- Because of strong typing, this is a **huge deal**
+
+---
+
+# Stackage - `stackage.org`
+
+**LTS** targets the "recommended" GHC version
+
+- new minor version of LTS only updates minor version of the packages
+
+**Nightly** targets one version more
+
+- more recent version of packages
+- at some point, they "graduate" to LTS
+
+What about the **most** recent version?
+
+---
+
+# Hackage - `hackage.haskell.org`
+
+> **The** repository for Haskell packages
+
+All version of packages + their documentation
+
+---
+
+# Hackage - `hackage.haskell.org`
+
+> **The** repository for Haskell packages
+
+All version of packages + their documentation
+
+You can add Hackage packages to Stack
+
+```yaml
+resolver: lts-18.14
+packages:
+  - .
+extra-deps:
+  - nice-dependency-0.24.5
+```
+
+---
+
+# 🧱 Summary
+
+.margin-top[
+- Packages are defined in `.cabal` files
+- Cabal and Stack are used to build them
+- We have two sources for dependencies:
+    - Stackage for curated sets
+    - Hackage for everything
+- Stack leans towards Stackage
+]
+
+---
+
+class: center, middle, title-slide
+
+# ⚗️ Extensions and the Type Level
+
+---
+
+# Haskell-the-language
+
+> The language itself vs. the **compilers**
+
+There is more than one Haskell compiler:
+
+- GHC, from Glasgow
+- Helium and UHC, from Utrecht
+- Mu, used internally
+- LHC, JHC, ...
+
+---
+
+# Haskell-the-language
+
+> The language itself vs. the **compilers**
+
+There is more than one Haskell compiler:
+
+- **GHC** is _de facto_ the standard
+- _Helium_, in research, and UHC
+- _Mu_, used internally
+- LHC, JHC, ..., not maintained
+
+---
+
+# Haskell-the-language
+
+> The **language** itself vs. the compilers
+
+**Report** = Haskell "standard"
+
+- Current: Haskell 2010
+- Previously: Haskell 98
+
+---
+
+# Haskell-the-language
+
+> The **language** itself vs. the compilers
+
+**Report** = Haskell "standard"
+
+- Current: Haskell 2010
+- Previously: Haskell 98
+
+> You sometimes hear people saying they write "Haskell 2010" (or 98) code to mean code without GHC extensions
+
+---
+
+# Extensions
+
+> Anything outside the Report
+
+- Syntactical goodies
+- Type classes with multiple parameters
+- Type families
+- More ways to use `deriving`
+- And other 20+ things
+
+## ℹ️ Extension `/=` unsupported or bad style
+
+---
+
+# Extensions
+
+> Anything outside the Report
+
+To enable one, you write **first thing** in the file
+
+```haskell
+{-# language MultiParamTypeClasses #-}
+-- this also works, but no need to shout 🗣️
+{-# LANGUAGE DeriveFunctor #-}
+```
+
+Usual joke: a Haskell file is 20 lines extensions, 30 lines type definitions, and 3 lines of code
+
+---
+
+# Type level
+
+> Working with types as easy as with values
+
+.code60[
+```haskell
+{-# language TypeFamilies #-}
+
+type family MakeOpt (t :: Type) :: Type where
+  MakeOpt (Maybe    a) = Maybe a  -- already optional
+  MakeOpt (Either e a) = Maybe a  -- simplify
+  MakeOpt t            = Maybe t  -- other cases
+```
+]
+
+.code60[
+```haskell
+{-# language GADTs, DataKinds #-}
+
+data SafeString (escaped :: Bool) where
+  Unsafe  :: String -> SafeString 'False
+  Escaped :: String -> SafeString 'True
+```
+]
+
+---
+
+# Type level
+
+> Working with types as easy as with values
+
+> How to use types to check more invariants
+
+This is **advanced** Haskell
+
+- But we love to talk about it! 💜
+- Lots of exploration and research
+
+The *Stitch* paper by Eisenberg is awesome 💎
+
+---
+
+# `GHC2021`
+
+Many extensions have been stable for _decades_ <br />
+... yet they won't make into a new Report
+
+`GHC2021` is the standard "language version" since (the recently released) 9.2
+
+Stemming from the **GHC Steering Committee**
+
+- Oversee new extensions to the language
+- Similar to processes in other communities
+
+---
+
+class: center, middle, title-slide
+
+# 🗣️ Community
+
+---
+
+# Main players
+
+.margin-top[
+- GHC Team, builds the compiler
+- Haskell Foundation
+- Haskell Language Server team
+- Several working groups
+    - Haskell.org
+    - Core Libraries Committee
+    - GHC Steering Committee
+    - Moving towards Foundation umbrella ☂️
+]
+
+---
+
+# Means of communication
+
+### Old school: IRC and mailing lists
+
+.margin-top[
+- `haskell-cafe`
+- `haskell-beginners`
+]
+
+### Reddit `/r/haskell` 
+
+Quite focused and active
+
+### Discourse
+
+---
+
+# Category Theory
+
+> A branch of mathematics talking about the abstract structure of things
+
+There's a lot of cross-pollination 🐝
+
+- Functor or monad come from there
+- Type theories are influenced by PL research
+
+---
+
+# Category Theory
+
+> A branch of mathematics talking about the abstract structure of things
+
+There's a lot of cross-pollination 🐝
+
+However, it's a scary topic for many 👻
+
+- Not really needed to start with Haskell
+- But nevertheless _really_ interesting
+
+---
+
+class: center, middle, title-slide
+
+# 🤩 It's been a pleasure
+
+## Enjoy the rest of Haskell eXchange! <br />
+
+> Let this be the start of a long and exciting journey in Haskell!
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
